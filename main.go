@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/eiannone/keyboard"
 	"log"
 	"math/rand"
 	"os"
@@ -144,12 +145,12 @@ func CreateFigure() {
 func showField(f Field) {
 	for r := 0; r < cap(f[0]); r++ {
 		for c := 0; c < cap(f); c++ {
-			if f[c][r].Fill == 1 {
-				fmt.Print("◽")
-			} else {
-				fmt.Print("◾")
-			}
-			//fmt.Print(f[c][r].Fill)
+			//if f[c][r].Fill == 1 {
+			//	fmt.Print("◽")
+			//} else {
+			//	fmt.Print("◾")
+			//}
+			fmt.Print(f[c][r].Fill)
 		}
 		fmt.Println()
 	}
@@ -236,6 +237,8 @@ func SpawnFigureNew(f *Field) {
 		spawnCol = getRand(9)
 	case I:
 		spawnCol = getRand(7)
+	default:
+
 	}
 
 	fc := 0
@@ -341,8 +344,13 @@ func findFigureCells(f *Field) [4][2]int {
 	return res
 }
 
-func FallFigure(f *Field) {
+func FallFigure(f *Field, ch chan string) {
 	for i := 0; i < 19; i++ {
+
+		if <-ch != "" {
+			fmt.Println("ch correct transfer to FallFigure")
+			time.Sleep(1 * time.Second)
+		}
 
 		// проверка достижения нижней линии
 		if i > 15 {
@@ -381,7 +389,7 @@ func FallFigure(f *Field) {
 
 		}
 		showField(*f)
-		time.Sleep(5000 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
@@ -488,28 +496,77 @@ func MoveFigure(f *Field, dir string) {
 	}
 }
 
+func getKey(chKey chan uint16) {
+	for {
+		_, s, err := keyboard.GetSingleKey()
+		if err != nil {
+			panic(err)
+		}
+		if s != 0 {
+			chKey <- uint16(s)
+		} else {
+			chKey <- 0
+		}
+
+		//switch s {
+		//case 65517:
+		//	fmt.Println("вверх - команда повернуть")
+		//case 65515:
+		//	fmt.Println("влево - команда сдвиг влево")
+		//case 65514:
+		//	fmt.Println("вправо - команда сдвиг вправо")
+		//case 65516:
+		//	fmt.Println("вниз - команда быстро опустить")
+		//}
+	}
+
+}
+
+func startGame(ch chan string) {
+	field := CreateField()
+	CreateFigure()
+
+	for {
+		SpawnFigureNew(field)
+		FallFigure(field, ch)
+	}
+
+}
+
 func main() {
 
-	//char, s, err := keyboard.GetSingleKey()
-	//if err != nil {
-	//	panic(err)
-	//}
-	//fmt.Printf("You pressed: %q\r\n", char)
-	//fmt.Printf("You pressed: %q\r\n", s)
+	ch := make(chan string)
+	chKey := make(chan uint16)
+	go startGame(ch)
+	go getKey(chKey)
+	for r := range chKey {
+		switch r {
+		case 65517:
+			ch <- "turn"
+			fmt.Println("повернуть")
+		case 65515:
+			fmt.Println("влево")
+		case 65514:
+			fmt.Println("вправо")
+		case 65516:
+			fmt.Println("вниз")
+		default:
 
-	CreateFigure()
-	field := CreateField()
-	//callClear()
-	showField(*field)
-	fmt.Println()
+		}
+		ch <- ""
+	}
+
+	//showField(*field)
+
+	//time.Sleep(60 * time.Second)
 
 	//for i := 0; i < 10; i++ {
 	//SpawnAdvancedFigureNew(Z, 0, field)
 	//FallFigure(field)
 	//SpawnAdvancedFigureNew(Z, 2, field)
 	//FallFigure(field)
-	SpawnAdvancedFigureNew(Z, 4, field)
-	FallFigure(field)
+	//SpawnAdvancedFigureNew(Z, 4, field)
+	//FallFigure(field)
 	//SpawnAdvancedFigureNew(Z, 6, field)
 	//FallFigure(field)
 	//SpawnAdvancedFigureNew(Z, 7, field)
