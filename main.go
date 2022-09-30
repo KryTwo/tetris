@@ -145,12 +145,12 @@ func CreateFigure() {
 func showField(f Field) {
 	for r := 0; r < cap(f[0]); r++ {
 		for c := 0; c < cap(f); c++ {
-			//if f[c][r].Fill == 1 {
-			//	fmt.Print("◽")
-			//} else {
-			//	fmt.Print("◾")
-			//}
-			fmt.Print(f[c][r].Fill)
+			if f[c][r].Fill == 1 {
+				fmt.Print("◽")
+			} else {
+				fmt.Print("◾")
+			}
+			//	fmt.Print(f[c][r].Fill)
 		}
 		fmt.Println()
 	}
@@ -198,10 +198,10 @@ func getRandFigure() Figure {
 }
 
 func SpawnAdvancedFigureNew(a Figure, s int, f *Field) {
-	actFigure := a //getRandFigure()
-	spawnCol := s  //:= getRand(8)
+	ActFigure = a //getRandFigure()
+	spawnCol := s //:= getRand(8)
 
-	switch actFigure {
+	switch ActFigure {
 	case O:
 		spawnCol = s //getRand(9)
 	case I:
@@ -210,12 +210,12 @@ func SpawnAdvancedFigureNew(a Figure, s int, f *Field) {
 
 	fc := 0
 	fr := 0
-	for r := 0; r < len(actFigure); r++ {
-		for c := spawnCol; c < len(actFigure)+spawnCol; c++ {
-			if actFigure[fr][fc].Fill == 1 {
+	for r := 0; r < len(ActFigure); r++ {
+		for c := spawnCol; c < len(ActFigure)+spawnCol; c++ {
+			if ActFigure[fr][fc].Fill == 1 {
 				f[c][r].Fill = 1
 				f[c][r].Fall = 1
-				if actFigure[fr][fc].RotationCenter == 1 {
+				if ActFigure[fr][fc].RotationCenter == 1 {
 					f[c][r].CenterOfFigure = 1
 				}
 			}
@@ -226,13 +226,15 @@ func SpawnAdvancedFigureNew(a Figure, s int, f *Field) {
 	}
 }
 
+var ActFigure Figure
+
 func SpawnFigureNew(f *Field) {
 	//спавн только на пустое место в разумных пределах от центра
 
-	actFigure := getRandFigure()
+	ActFigure = getRandFigure()
 	spawnCol := getRand(8)
 
-	switch actFigure {
+	switch ActFigure {
 	case O:
 		spawnCol = getRand(9)
 	case I:
@@ -243,12 +245,12 @@ func SpawnFigureNew(f *Field) {
 
 	fc := 0
 	fr := 0
-	for r := 0; r < len(actFigure); r++ {
-		for c := spawnCol; c < len(actFigure)+spawnCol; c++ {
-			if actFigure[fr][fc].Fill == 1 {
+	for r := 0; r < len(ActFigure); r++ {
+		for c := spawnCol; c < len(ActFigure)+spawnCol; c++ {
+			if ActFigure[fr][fc].Fill == 1 {
 				f[c][r].Fill = 1
 				f[c][r].Fall = 1
-				if actFigure[fr][fc].RotationCenter == 1 {
+				if ActFigure[fr][fc].RotationCenter == 1 {
 					f[c][r].CenterOfFigure = 1
 				}
 			}
@@ -344,12 +346,23 @@ func findFigureCells(f *Field) [4][2]int {
 	return res
 }
 
-func FallFigure(f *Field, ch chan string) {
+func FallFigure(f *Field, ch chan int) {
 	for i := 0; i < 19; i++ {
 
-		if <-ch != "" {
-			fmt.Println("ch correct transfer to FallFigure")
-			time.Sleep(1 * time.Second)
+		key := <-ch
+		if key != 0 {
+			switch key {
+			case 65517:
+				RotateFigure(f)
+			case 65515:
+				MoveFigure(f, "left")
+			case 65514:
+				MoveFigure(f, "right")
+			case 65516:
+				//func fastFall()
+			}
+			//fmt.Println("ch correct transfer to FallFigure")
+			//time.Sleep(1 * time.Second)
 		}
 
 		// проверка достижения нижней линии
@@ -389,7 +402,7 @@ func FallFigure(f *Field, ch chan string) {
 
 		}
 		showField(*f)
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(300 * time.Millisecond)
 	}
 }
 
@@ -413,68 +426,77 @@ func FindCenterOfFigure(f *Field) (int, int) {
 	return col, row
 }
 
-// RotateFigure get f - main *field and dir - direction rotation "right" or "left"
-//func RotateFigure(f *Field, dir string) {
-//	col, row := FindCenterOfFigure(f) // return col + row
-//	var temp [4][4]Cell
-//	var tc, tr int
-//
-//	for r := row - 1; r < row+2; r++ {
-//		for c := col - 1; c < col+2; c++ {
-//			temp[tr][tc] = f[r][c]
-//			tc++
-//		}
-//		tc = 0
-//		tr++
-//	}
-//
-//	switch dir {
-//	case "left":
-//		t2c := col - 1
-//		t2r := row - 1
-//		for c := 0; c < 3; c++ {
-//			for r := 2; r > -1; r-- {
-//				f[t2r][t2c] = temp[r][c]
-//				t2c++
-//			}
-//			t2c = 0
-//			t2r++
-//		}
-//	case "right":
-//		t2c := col - 1
-//		t2r := row - 1
-//		for c := 2; c > -1; c-- {
-//			for r := 0; r < 3; r++ {
-//				f[t2r][t2c] = temp[r][c]
-//				t2c++
-//			}
-//			t2c = 0
-//			t2r++
-//		}
-//	}
-//
-//	fmt.Println()
-//	showFigure(temp)
-//	fmt.Println()
-//
+//func (c *Cell) clear() {
+//	c.Fill = 0
+//	c.Fixed = 0
+//	c.CenterOfFigure = 0
+//	c.Fall = 0
 //}
+
+func RotateFigure(f *Field) {
+	if ActFigure == O {
+		return // fmt.Println("ты дурак?")
+	}
+
+	col, row := FindCenterOfFigure(f) // return col + row
+
+	if ActFigure == I {
+
+	} else {
+		if col == 0 {
+			MoveFigure(f, "right")
+		} else if col == 9 {
+			MoveFigure(f, "left")
+		} else {
+			var temp [3][3]Cell
+			var tc, tr int
+
+			for r := row - 1; r < row+2; r++ {
+				for c := col - 1; c < col+2; c++ {
+					temp[tc][tr] = f[c][r]
+					f[c][r].Fill = 0
+					f[c][r].Fall = 0
+					f[c][r].Fixed = 0
+					f[c][r].CenterOfFigure = 0
+					tc++
+				}
+				tc = 0
+				tr++
+			}
+			tr = 0
+
+			for c := col - 1; c < col+2; c++ {
+				for r := row - 1; r < row+2; r++ {
+					f[c][r] = temp[tc][tr]
+					tc++
+				}
+				tc = 0
+				tr++
+			}
+		}
+	}
+	time.Sleep(100 * time.Millisecond)
+	showField(*f)
+
+}
 
 // MoveFigure -- f - main *field and dir - direction
 func MoveFigure(f *Field, dir string) {
 	//col, row := FindCenterOfFigure(f)
+	time.Sleep(100 * time.Millisecond)
 	switch dir {
 	case "left":
 		for r := 0; r < 20; r++ {
 			for c := 0; c < 10; c++ {
-				if f[c][r].Fill == 1 {
-					if f[c][r].Fill == 1 {
-						f[c][r].Fill = 0
-						f[c-1][r].Fill = 1
+				if f[c][r].Fall == 1 && c != 0 {
+					f[c][r].Fill = 0
+					f[c-1][r].Fill = 1
+					f[c][r].Fall = 0
+					f[c-1][r].Fall = 1
 
-						if f[c][r].CenterOfFigure == 1 {
-							f[c][r].CenterOfFigure = 0
-							f[c-1][r].CenterOfFigure = 1
-						}
+					if f[c][r].CenterOfFigure == 1 {
+						f[c][r].CenterOfFigure = 0
+						f[c-1][r].CenterOfFigure = 1
 					}
 				}
 			}
@@ -482,7 +504,9 @@ func MoveFigure(f *Field, dir string) {
 	case "right":
 		for r := 0; r < 20; r++ {
 			for c := 9; c != -1; c-- {
-				if f[c][r].Fill == 1 {
+				if f[c][r].Fall == 1 && c != 9 {
+					f[c][r].Fall = 0
+					f[c+1][r].Fall = 1
 					f[c][r].Fill = 0
 					f[c+1][r].Fill = 1
 
@@ -494,6 +518,7 @@ func MoveFigure(f *Field, dir string) {
 			}
 		}
 	}
+	showField(*f)
 }
 
 func getKey(chKey chan uint16) {
@@ -502,6 +527,7 @@ func getKey(chKey chan uint16) {
 		if err != nil {
 			panic(err)
 		}
+
 		if s != 0 {
 			chKey <- uint16(s)
 		} else {
@@ -522,7 +548,7 @@ func getKey(chKey chan uint16) {
 
 }
 
-func startGame(ch chan string) {
+func startGame(ch chan int) {
 	field := CreateField()
 	CreateFigure()
 
@@ -533,28 +559,69 @@ func startGame(ch chan string) {
 
 }
 
+func getKeyTimeout(tm time.Duration) (ch rune, err error) {
+	if err = keyboard.Open(); err != nil {
+		return
+	}
+	defer keyboard.Close()
+
+	var (
+		chChan  = make(chan rune, 1)
+		errChan = make(chan error, 1)
+
+		timer = time.NewTimer(tm)
+	)
+	defer timer.Stop()
+
+	go func(chChan chan<- rune, errChan chan<- error) {
+		_, s, err := keyboard.GetSingleKey()
+		if err != nil {
+			errChan <- err
+			return
+		}
+		chChan <- rune(s)
+	}(chChan, errChan)
+
+	select {
+	case <-timer.C:
+		return
+	case ch = <-chChan:
+	case err = <-errChan:
+	}
+
+	return
+}
+
 func main() {
 
-	ch := make(chan string)
-	chKey := make(chan uint16)
+	ch := make(chan int)
+	//chKey := make(chan uint16)
 	go startGame(ch)
-	go getKey(chKey)
-	for r := range chKey {
-		switch r {
-		case 65517:
-			ch <- "turn"
-			fmt.Println("повернуть")
-		case 65515:
-			fmt.Println("влево")
-		case 65514:
-			fmt.Println("вправо")
-		case 65516:
-			fmt.Println("вниз")
-		default:
+	for {
 
+		s, _ := getKeyTimeout(50 * time.Millisecond)
+
+		if s != 0 {
+			ch <- int(s)
+		} else {
+			ch <- 0
 		}
-		ch <- ""
 	}
+	//go getKey(chKey) // клавитура
+
+	//switch <-chKey {
+	//case 65517:
+	//	ch <- "turn"
+	//	fmt.Println("повернуть")
+	//case 65515:
+	//	fmt.Println("влево")
+	//case 65514:
+	//	fmt.Println("вправо")
+	//case 65516:
+	//	fmt.Println("вниз")
+	//default:
+	//	ch <- "1"
+	//}
 
 	//showField(*field)
 
