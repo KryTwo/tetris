@@ -142,7 +142,7 @@ func CreateFigure() {
 
 }
 
-func showField(f Field) {
+func showField(f *Field) {
 	for r := 0; r < cap(f[0]); r++ {
 		for c := 0; c < cap(f); c++ {
 			if f[c][r].Fill == 1 {
@@ -150,10 +150,12 @@ func showField(f Field) {
 			} else {
 				fmt.Print("◾")
 			}
+			//fmt.Printf("%d;%d", f[c][r].Column, f[c][r].Row)
 			//	fmt.Print(f[c][r].Fill)
 		}
 		fmt.Println()
 	}
+	fmt.Println()
 }
 
 func showCenterOfFigure(f Field) {
@@ -197,7 +199,7 @@ func getRandFigure() Figure {
 	}
 }
 
-func SpawnAdvancedFigureNew(a Figure, s int, f *Field) {
+func SpawnAdvancedFigure(a Figure, s int, f *Field) {
 	ActFigure = a //getRandFigure()
 	spawnCol := s //:= getRand(8)
 
@@ -228,7 +230,7 @@ func SpawnAdvancedFigureNew(a Figure, s int, f *Field) {
 
 var ActFigure Figure
 
-func SpawnFigureNew(f *Field) {
+func SpawnFigure(f *Field) {
 	//спавн только на пустое место в разумных пределах от центра
 
 	ActFigure = getRandFigure()
@@ -284,7 +286,7 @@ func clearLine(f *Field, row int) {
 		f[c][row].Fixed = 0
 		f[c][row].CenterOfFigure = 0
 	}
-	showField(*f)
+	showField(f)
 	time.Sleep(200 * time.Millisecond)
 	// something here place counter (payer score)
 }
@@ -295,7 +297,7 @@ func moveAllUpperCellsDown(f *Field, row int) {
 			f[c][r].Fill = f[c][r-1].Fill
 			f[c][r].Fixed = f[c][r-1].Fixed
 			f[c][r].CenterOfFigure = f[c][r-1].CenterOfFigure
-			showField(*f)
+			showField(f)
 		}
 	}
 
@@ -385,8 +387,12 @@ func RotateFigure(f *Field) {
 	} else {
 		if col == 0 {
 			MoveFigure(f, "right")
+			showField(f)
+			time.Sleep(1 * time.Second)
 		} else if col == 9 {
 			MoveFigure(f, "left")
+			showField(f)
+			time.Sleep(1 * time.Second)
 		} else {
 			var temp [3][3]Cell
 			var tc, tr int
@@ -396,7 +402,6 @@ func RotateFigure(f *Field) {
 					temp[tc][tr] = f[c][r]
 					f[c][r].Fill = 0
 					f[c][r].Fall = 0
-					f[c][r].Fixed = 0
 					f[c][r].CenterOfFigure = 0
 					tc++
 				}
@@ -407,7 +412,9 @@ func RotateFigure(f *Field) {
 
 			for c := col - 1; c < col+2; c++ {
 				for r := row + 1; r > row-2; r-- {
-					f[c][r] = temp[tc][tr]
+					f[c][r].Fill = temp[tc][tr].Fill
+					f[c][r].Fall = temp[tc][tr].Fall
+					f[c][r].CenterOfFigure = temp[tc][tr].CenterOfFigure
 					tc++
 				}
 				tc = 0
@@ -417,8 +424,6 @@ func RotateFigure(f *Field) {
 		}
 	}
 	time.Sleep(100 * time.Millisecond)
-	showField(*f)
-
 }
 
 func canMove(f *Field, dir string) bool {
@@ -446,18 +451,20 @@ func canMove(f *Field, dir string) bool {
 		}
 	}
 
-	if min[0] == 0 || max[0] == 9 {
-		return false
-	}
-
 	switch dir {
 	case "left":
+		if min[0] == 0 {
+			return false
+		}
 		for _, el := range pos {
 			if f[el[0]-1][el[1]].Fixed == 1 {
 				return false
 			}
 		}
 	case "right":
+		if max[0] == 9 {
+			return false
+		}
 		for _, el := range pos {
 			if f[el[0]+1][el[1]].Fixed == 1 {
 				return false
@@ -469,14 +476,10 @@ func canMove(f *Field, dir string) bool {
 
 // MoveFigure -- f - main *field and dir - direction
 func MoveFigure(f *Field, dir string) {
-	time.Sleep(1000 * time.Millisecond)
-
 	if !canMove(f, dir) {
 		fmt.Println("can't move")
 		return
 	}
-
-	//col, row := FindCenterOfFigure(f)
 
 	switch dir {
 	case "left":
@@ -512,7 +515,6 @@ func MoveFigure(f *Field, dir string) {
 			}
 		}
 	}
-	showField(*f)
 }
 
 func FallFigure(f *Field, ch chan int) {
@@ -536,7 +538,7 @@ func FallFigure(f *Field, ch chan int) {
 		if i > 15 {
 			lowerRow := getLowerCells(f)
 			if lowerRow == 19 {
-				showField(*f)
+				showField(f)
 				fixFigure(f)
 				fmt.Println("rich to the end of field")
 				return
@@ -568,7 +570,7 @@ func FallFigure(f *Field, ch chan int) {
 			}
 
 		}
-		showField(*f)
+		showField(f)
 		time.Sleep(300 * time.Millisecond)
 	}
 }
@@ -577,20 +579,33 @@ func startGame(ch chan int) {
 	field := CreateField()
 	CreateFigure()
 
-	SpawnAdvancedFigureNew(O, 4, field)
-	fixFigure(field)
-	SpawnAdvancedFigureNew(O, 1, field)
-	showField(*field)
+	SpawnAdvancedFigure(T, 0, field)
+	showField(field)
 	time.Sleep(1000 * time.Millisecond)
 
-	for {
+	RotateFigure(field)
+	showField(field)
+	time.Sleep(1000 * time.Millisecond)
+
+	for i := 0; i < 10; i++ {
 		MoveFigure(field, "right")
-		showField(*field)
-		//RotateFigure(field)
+		showField(field)
+		time.Sleep(300 * time.Millisecond)
 	}
+
+	for {
+		RotateFigure(field)
+		showField(field)
+		time.Sleep(1000 * time.Millisecond)
+	}
+	//for {
+	//	MoveFigure(field, "left")
+	//	showField(*field)
+	//	//RotateFigure(field)
+	//}
 	//FallFigure(field, ch)
 	//for {
-	//	SpawnFigureNew(field)
+	//	SpawnFigure(field)
 	//	FallFigure(field, ch)
 	//}
 
@@ -665,34 +680,34 @@ func main() {
 	//time.Sleep(60 * time.Second)
 
 	//for i := 0; i < 10; i++ {
-	//SpawnAdvancedFigureNew(Z, 0, field)
+	//SpawnAdvancedFigure(Z, 0, field)
 	//FallFigure(field)
-	//SpawnAdvancedFigureNew(Z, 2, field)
+	//SpawnAdvancedFigure(Z, 2, field)
 	//FallFigure(field)
-	//SpawnAdvancedFigureNew(Z, 4, field)
+	//SpawnAdvancedFigure(Z, 4, field)
 	//FallFigure(field)
-	//SpawnAdvancedFigureNew(Z, 6, field)
+	//SpawnAdvancedFigure(Z, 6, field)
 	//FallFigure(field)
-	//SpawnAdvancedFigureNew(Z, 7, field)
+	//SpawnAdvancedFigure(Z, 7, field)
 	//FallFigure(field)
-	//SpawnAdvancedFigureNew(L, 0, field)
+	//SpawnAdvancedFigure(L, 0, field)
 	//FallFigure(field)
-	//SpawnAdvancedFigureNew(J, 7, field)
+	//SpawnAdvancedFigure(J, 7, field)
 	//FallFigure(field)
-	//SpawnAdvancedFigureNew(I, 3, field)
+	//SpawnAdvancedFigure(I, 3, field)
 	//FallFigure(field)
-	//SpawnAdvancedFigureNew(O, 0, field)
+	//SpawnAdvancedFigure(O, 0, field)
 	//FallFigure(field)
-	//SpawnAdvancedFigureNew(O, 2, field)
+	//SpawnAdvancedFigure(O, 2, field)
 	//FallFigure(field)
-	//SpawnAdvancedFigureNew(O, 4, field)
+	//SpawnAdvancedFigure(O, 4, field)
 	//FallFigure(field)
-	//SpawnAdvancedFigureNew(L, 6, field)
+	//SpawnAdvancedFigure(L, 6, field)
 	//FallFigure(field)
 	//}
 
 	//for i := 0; i < 40; i++ {
-	//	SpawnFigureNew(field)
+	//	SpawnFigure(field)
 	//	FallFigure(field)
 	//}
 }
