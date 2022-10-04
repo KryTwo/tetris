@@ -111,31 +111,17 @@
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/main.go</url>
-          <line>592</line>
-          <option name="timeStamp" value="18" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/main.go</url>
-          <line>211</line>
-          <option name="timeStamp" value="23" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/main.go</url>
-          <line>216</line>
-          <option name="timeStamp" value="24" />
-        </line-breakpoint>
-      </breakpoints>
       <default-breakpoints>
         <breakpoint type="DlvErrorBreakpoint" />
       </default-breakpoints>
     </breakpoint-manager>
     <watches-manager>
       <configuration name="GoApplicationRunConfiguration">
-        <watch expression="f[c][r].Column" />
-        <watch expression="Field[c][r].Fill" />
+        <watch expression="Field[5][0].Fill" language="go" />
+        <watch expression="Field[c][r].Column" />
+        <watch expression="Field[c][r].Row" />
+        <watch expression="Field[1][6].CenterOfFigure" language="go" />
+        <watch expression="Field[1][7].CenterOfFigure" language="go" />
       </configuration>
     </watches-manager>
   </component>

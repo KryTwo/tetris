@@ -63,7 +63,7 @@ type field [10][20]Cell
 
 var Field field
 
-func CreateField(f field) {
+func CreateField(f *field) {
 	for r := 0; r < 20; r++ {
 		for c := 0; c < 10; c++ {
 			f[c][r].Column = c
@@ -149,8 +149,8 @@ func showField() {
 			} else {
 				fmt.Print("◾")
 			}
-			//fmt.Printf("%d;%d", Field[c][r].Column, Field[c][r].Row)
-			//	fmt.Print(Field[c][r].Fill)
+			//fmt.Printf("%d-%d|%d", Field[c][r].Column, Field[c][r].Row, Field[c][r].CenterOfFigure)
+			//fmt.Print(Field[c][r].Fill)
 		}
 		fmt.Println()
 	}
@@ -285,7 +285,7 @@ func clearLine(row int) {
 		Field[c][row].Fixed = 0
 		Field[c][row].CenterOfFigure = 0
 	}
-	showField()
+
 	time.Sleep(200 * time.Millisecond)
 	// something here place counter (payer score)
 }
@@ -296,7 +296,7 @@ func moveAllUpperCellsDown(row int) {
 			Field[c][r].Fill = Field[c][r-1].Fill
 			Field[c][r].Fixed = Field[c][r-1].Fixed
 			Field[c][r].CenterOfFigure = Field[c][r-1].CenterOfFigure
-			showField()
+
 		}
 	}
 
@@ -355,13 +355,9 @@ func FindCenterOfFigure() (int, int) {
 			if Field[c][r].CenterOfFigure == 1 {
 				col = Field[c][r].Column
 				row = Field[c][r].Row
-				break
+				return col, row
 
 			}
-		}
-
-		if col != -1 {
-			break
 		}
 	}
 	return col, row
@@ -374,11 +370,76 @@ func FindCenterOfFigure() (int, int) {
 //	c.Fall = 0
 //}
 
+func canRotate(temp [3][3]Cell, col, row int) bool {
+	var tc, tr int
+	for c := col - 1; c < col+2; c++ {
+		for r := row + 1; r > row-2; r-- {
+			if Field[c][r].Fixed == 1 && temp[tc][tr].Fill == 1 {
+				rollback(temp, col, row)
+				return false
+
+			}
+			tc++
+		}
+		tc = 0
+		tr++
+	}
+	tr = 0
+	return true
+}
+
+func rollback(t [3][3]Cell, col, row int) {
+	fmt.Println("rollback begin")
+	var tc, tr int
+	for r := row - 1; r < row+2; r++ {
+		for c := col - 1; c < col+2; c++ {
+			Field[c][r].Fill = t[tc][tr].Fill
+			Field[c][r].Fall = t[tc][tr].Fall
+			Field[c][r].CenterOfFigure = t[tc][tr].CenterOfFigure
+			tc++
+		}
+		tc = 0
+		tr++
+	}
+}
+
+func tryMoveAndRotate(t [3][3]Cell) bool {
+	tempField := Field
+	if canMove("left") {
+		MoveFigure("left")
+		col, row := FindCenterOfFigure()
+		if canRotate(t, col, row) {
+			RotateFigure()
+			return true
+		} else {
+			Field = tempField
+
+		}
+	} else if canMove("right") {
+		MoveFigure("right")
+
+		col, row := FindCenterOfFigure()
+		if canRotate(t, col, row) {
+			RotateFigure()
+			return true
+		} else {
+			Field = tempField
+		}
+	}
+	return false
+}
+
 func RotateFigure() {
 	if ActFigure == O {
 		return // fmt.Println("ты дурак?")
 	}
 
+	//if !canRotate() {
+	//	fmt.Println("can't rotate")
+	//	return
+	//}
+
+	time.Sleep(1 * time.Second)
 	col, row := FindCenterOfFigure() // return col + row
 
 	if ActFigure == I {
@@ -386,16 +447,15 @@ func RotateFigure() {
 	} else {
 		if col == 0 {
 			MoveFigure("right")
-			showField()
 			time.Sleep(1 * time.Second)
 		} else if col == 9 {
 			MoveFigure("left")
-			showField()
 			time.Sleep(1 * time.Second)
 		} else {
 			var temp [3][3]Cell
 			var tc, tr int
 
+			// записываем состояние поля во времянку temp
 			for r := row - 1; r < row+2; r++ {
 				for c := col - 1; c < col+2; c++ {
 					temp[tc][tr] = Field[c][r]
@@ -409,6 +469,29 @@ func RotateFigure() {
 			}
 			tr = 0
 
+			// пробуем повернуть
+			for c := col - 1; c < col+2; c++ {
+				for r := row + 1; r > row-2; r-- {
+					if Field[c][r].Fixed == 1 && temp[tc][tr].Fill == 1 {
+						fmt.Println("can't rotate")
+						rollback(temp, col, row)     // откат
+						do := tryMoveAndRotate(temp) //пробуем сместить и повернуть сначала
+
+						if !do { // если невозможно повернуть, то выходим
+							fmt.Println("can't rotate ever")
+							return
+						}
+						return //проверяем всего один раз, далее выходим
+					}
+					tr++
+				}
+				tr = 0
+				tc++
+			}
+			tc = 0
+
+			//col, row = FindCenterOfFigure()
+			//HEREEEEEE!!!!!
 			for c := col - 1; c < col+2; c++ {
 				for r := row + 1; r > row-2; r-- {
 					Field[c][r].Fill = temp[tc][tr].Fill
@@ -418,8 +501,10 @@ func RotateFigure() {
 				}
 				tc = 0
 				tr++
+
 			}
 			tr = 0
+
 		}
 	}
 	time.Sleep(100 * time.Millisecond)
@@ -537,7 +622,7 @@ func FallFigure(ch chan int) {
 		if i > 15 {
 			lowerRow := getLowerCells()
 			if lowerRow == 19 {
-				showField()
+
 				fixFigure()
 				fmt.Println("rich to the end of field")
 				return
@@ -569,34 +654,41 @@ func FallFigure(ch chan int) {
 			}
 
 		}
-		showField()
+
 		time.Sleep(300 * time.Millisecond)
 	}
 }
 
 func startGame(ch chan int) {
-	CreateField(Field)
+	CreateField(&Field)
 	CreateFigure()
 
-	SpawnAdvancedFigure(T, 0)
+	SpawnAdvancedFigure(T, 3)
+	fixFigure()
 	showField()
-	time.Sleep(1000 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
+
+	SpawnAdvancedFigure(J, 6)
+	showField()
+	time.Sleep(300 * time.Millisecond)
 
 	RotateFigure()
 	showField()
-	time.Sleep(1000 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
 
-	for i := 0; i < 10; i++ {
-		MoveFigure("right")
-		showField()
-		time.Sleep(300 * time.Millisecond)
-	}
+	MoveFigure("left")
+	showField()
+	time.Sleep(1 * time.Second)
 
-	for {
-		RotateFigure()
-		showField()
-		time.Sleep(1000 * time.Millisecond)
-	}
+	RotateFigure()
+	showField()
+	time.Sleep(1 * time.Second)
+
+	//for {
+	//	RotateFigure()
+	//
+	//	time.Sleep(1000 * time.Millisecond)
+	//}
 	//for {
 	//	MoveFigure(field, "left")
 	//	showField(*field)
@@ -608,39 +700,6 @@ func startGame(ch chan int) {
 	//	FallFigure(field, ch)
 	//}
 
-}
-
-func getKeyTimeout(tm time.Duration) (ch rune, err error) {
-	if err = keyboard.Open(); err != nil {
-		return
-	}
-	defer keyboard.Close()
-
-	var (
-		chChan  = make(chan rune, 1)
-		errChan = make(chan error, 1)
-
-		timer = time.NewTimer(tm)
-	)
-	defer timer.Stop()
-
-	go func(chChan chan<- rune, errChan chan<- error) {
-		_, s, err := keyboard.GetSingleKey()
-		if err != nil {
-			errChan <- err
-			return
-		}
-		chChan <- rune(s)
-	}(chChan, errChan)
-
-	select {
-	case <-timer.C:
-		return
-	case ch = <-chChan:
-	case err = <-errChan:
-	}
-
-	return
 }
 
 func main() {
@@ -709,4 +768,37 @@ func main() {
 	//	SpawnFigure(field)
 	//	FallFigure(field)
 	//}
+}
+
+func getKeyTimeout(tm time.Duration) (ch rune, err error) {
+	if err = keyboard.Open(); err != nil {
+		return
+	}
+	defer keyboard.Close()
+
+	var (
+		chChan  = make(chan rune, 1)
+		errChan = make(chan error, 1)
+
+		timer = time.NewTimer(tm)
+	)
+	defer timer.Stop()
+
+	go func(chChan chan<- rune, errChan chan<- error) {
+		_, s, err := keyboard.GetSingleKey()
+		if err != nil {
+			errChan <- err
+			return
+		}
+		chChan <- rune(s)
+	}(chChan, errChan)
+
+	select {
+	case <-timer.C:
+		return
+	case ch = <-chChan:
+	case err = <-errChan:
+	}
+
+	return
 }
