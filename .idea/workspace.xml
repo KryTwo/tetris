@@ -1,3 +1,4 @@
+
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="AutoImportSettings">
@@ -117,11 +118,8 @@
     </breakpoint-manager>
     <watches-manager>
       <configuration name="GoApplicationRunConfiguration">
-        <watch expression="Field[5][0].Fill" language="go" />
         <watch expression="Field[c][r].Column" />
         <watch expression="Field[c][r].Row" />
-        <watch expression="Field[1][6].CenterOfFigure" language="go" />
-        <watch expression="Field[1][7].CenterOfFigure" language="go" />
       </configuration>
     </watches-manager>
   </component>
