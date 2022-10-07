@@ -1,8 +1,10 @@
-/*TODO:
-1. Реализовать быстрое падение фигуры
+/*
+TODO:
+1. Взаимодействие с фигурой I
 2. Доработать спавн
-3. Взаимодействие с фигурой I
-4. ...
+3. Реализовать быстрое падение фигуры
+4. Добавить фантом?
+5...
 */
 package main
 
@@ -156,7 +158,7 @@ func showFieldOnce() {
 				fmt.Print("◾")
 			}
 			//fmt.Printf("%d-%d|%d", Field[c][r].Column, Field[c][r].Row, Field[c][r].CenterOfFigure)
-			fmt.Print(Field[c][r].CenterOfFigure)
+			fmt.Print(Field[c][r].Fall)
 		}
 		fmt.Println()
 	}
@@ -174,13 +176,13 @@ func showField() {
 			} else {
 				fmt.Print("◾")
 			}
-			//fmt.Printf("%d-%d|%d", Field[c][r].Fixed, Field[c][r].Fill, Field[c][r].Fall)
-			//fmt.Print(Field[c][r].Fill)
+			//fmt.Printf("%d-%d", Field[c][r].Column, Field[c][r].Row)
+			//fmt.Print(Field[c][r].CenterOfFigure)
 		}
 		fmt.Println()
 	}
 	fmt.Println()
-	//time.Sleep(1000 * time.Millisecond)
+	time.Sleep(1000 * time.Millisecond)
 	//}
 }
 
@@ -495,63 +497,115 @@ func TryMove(again int) bool {
 
 func TryRotate() bool {
 	col, row := FindCenterOfFigure()
-	var tempFigure [3][3]Cell
-	var tc, tr int
-	for r := row - 1; r < row+2; r++ {
-		for c := col - 1; c < col+2; c++ {
-			tempFigure[tc][tr] = Field[c][r]
-			Field[c][r].Fill = 0
-			Field[c][r].Fall = 0
-			Field[c][r].CenterOfFigure = 0
-			tc++
-		}
-		tc = 0
-		tr++
-	}
-	tr = 0
+	switch ActFigure {
+	case I:
+		var tempFigure [4]Cell
 
-	// пробуем повернуть
-	for c := col - 1; c < col+2; c++ {
-		for r := row + 1; r > row-2; r-- {
-			if Field[c][r].Fixed == 1 && tempFigure[tc][tr].Fill == 1 {
-				return false
+		if col > 7 {
+			col = 7
+		}
+
+		if col == 0 {
+			col = 1
+		}
+
+		var t int
+		for r := row - 1; r < row+3; r++ {
+			for c := col - 1; c < col+3; c++ {
+				if Field[c][r].Fall == 1 {
+					tempFigure[t] = Field[c][r]
+					Field[c][r].Fill = 0
+					Field[c][r].Fall = 0
+					Field[c][r].CenterOfFigure = 0
+					t++
+				}
 			}
+		}
+		t = 0
+
+		var position string
+		if tempFigure[0].Column == tempFigure[1].Column {
+			position = "v" // vertical    |
+		} else {
+			position = "h" // horizontal  _
+		}
+
+		// пробуем повернуть
+		if position == "v" {
+			for c := col - 1; c < col+3; c++ {
+				if Field[c][row].Fixed == tempFigure[t].Fill {
+					return false
+				}
+				Field[c][row].Fill = tempFigure[t].Fill
+				Field[c][row].Fall = tempFigure[t].Fall
+				Field[c][row].CenterOfFigure = tempFigure[t].CenterOfFigure
+				t++
+			}
+		} else {
+			for r := row - 1; r < row+3; r++ {
+				if Field[col][r].Fixed == tempFigure[t].Fill {
+					return false
+				}
+				Field[col][r].Fill = tempFigure[t].Fill
+				Field[col][r].Fall = tempFigure[t].Fall
+				Field[col][r].CenterOfFigure = tempFigure[t].CenterOfFigure
+				t++
+			}
+		}
+		return true
+
+	default:
+		var tempFigure [3][3]Cell
+		var tc, tr int
+		for r := row - 1; r < row+2; r++ {
+			for c := col - 1; c < col+2; c++ {
+				tempFigure[tc][tr] = Field[c][r]
+				Field[c][r].Fill = 0
+				Field[c][r].Fall = 0
+				Field[c][r].CenterOfFigure = 0
+				tc++
+			}
+			tc = 0
 			tr++
 		}
 		tr = 0
-		tc++
-	}
-	tc = 0
 
-	for c := col - 1; c < col+2; c++ {
-		for r := row + 1; r > row-2; r-- {
-			Field[c][r].Fill = tempFigure[tc][tr].Fill
-			Field[c][r].Fall = tempFigure[tc][tr].Fall
-			Field[c][r].CenterOfFigure = tempFigure[tc][tr].CenterOfFigure
-			tc++
+		// пробуем повернуть
+		for c := col - 1; c < col+2; c++ {
+			for r := row + 1; r > row-2; r-- {
+				if Field[c][r].Fixed == 1 && tempFigure[tc][tr].Fill == 1 {
+					return false
+				}
+				Field[c][r].Fill = tempFigure[tc][tr].Fill
+				Field[c][r].Fall = tempFigure[tc][tr].Fall
+				Field[c][r].CenterOfFigure = tempFigure[tc][tr].CenterOfFigure
+				tc++
+			}
+			tc = 0
+			tr++
 		}
-		tc = 0
-		tr++
-
+		tr = 0
+		return true
 	}
-	tr = 0
-	return true
 }
 
 func Rotation() {
 
-	col, _ := FindCenterOfFigure() // return col + row
-	var again int                  // сколько раз было попыток
+	col, _ := FindCenterOfFigure()
+	var again int // сколько раз было попыток
 	temp := Field
 
 	switch ActFigure {
 	case O:
 		return
 	case I:
-		return //допилить
+		if !TryRotate() {
+			rollback(temp)
+		}
+		return
 	default:
 		if col == 0 || col == 9 {
-			if TryMove(again) == false {
+			if !TryMove(again) {
 				rollback(temp)
 				return
 			}
@@ -574,6 +628,7 @@ func Rotation() {
 		}
 	}
 }
+
 func RotateFigureOld(again int) {
 	// need to fix unlimited rotate with tryMoveAndRotate
 	if ActFigure == O {
@@ -684,7 +739,6 @@ func canMove(dir string) bool {
 	return true
 }
 
-// MoveFigure -- f - main *field and dir - direction
 func MoveFigure(dir string) {
 	if !canMove(dir) {
 		return
@@ -788,6 +842,18 @@ func FallFigureOnce(ch chan int) {
 	time.Sleep(5 * time.Millisecond)
 }
 
+func fastFall() {
+	/*
+		1. найти все нижние ячейки
+		2. найти минимальное расстояние от одной из нижних ячеек до ближайшей fix
+		3. провести разово нужное количество итераций (2) /// или сразу прописать фигуру снизу без лишних итераций
+
+		---------
+
+		1.
+	*/
+}
+
 func FallFigure(ch chan int) {
 	for i := 0; i < 19; i++ {
 
@@ -804,7 +870,7 @@ func FallFigure(ch chan int) {
 				MoveFigure("right")
 				showFieldOnce()
 			case 65516:
-				//func fastFall()
+				fastFall()
 			}
 		}
 
@@ -855,61 +921,27 @@ func FallFigure(ch chan int) {
 func startGame(ch chan int) {
 	CreateField(&Field)
 	CreateFigure()
-	showField()
-	//for i := 0; i < 7; i++ {
-	//	SpawnAdvancedFigure(O, 2)
-	//	showField()
-	//
-	//	FallFigure(ch)
-	//	showField()
-	//
-	//}
 
-	SpawnAdvancedFigure(O, 0)
 	showField()
 
-	FallFigureOnce(ch)
+	SpawnAdvancedFigure(I, 0)
 	showField()
-	FallFigureOnce(ch)
+	Rotation()
 	showField()
-	FallFigureOnce(ch)
+	MoveFigure("left")
 	showField()
-	FallFigureOnce(ch)
-	showField()
-	FallFigureOnce(ch)
-	showField()
-	fixFigure()
 
-	//
-	//RotateFigureOld(0)
-	//showField()
-	//
-	//MoveFigure("left")
-	//showField()
-	//
-	//time.Sleep(1 * time.Second)
-	//
-	//FallFigureOnce(ch)
-	//FallFigureOnce(ch)
-	//FallFigureOnce(ch)
-	//FallFigureOnce(ch)
-	//FallFigureOnce(ch)
-	//showField()
-	//
-	//time.Sleep(1000 * time.Millisecond)
-	//
-	//Rotation()
-	//time.Sleep(1 * time.Second)
+	Rotation()
+	showField()
 
+	fmt.Println("simulation is finished")
 }
 
 func main() {
 
 	ch := make(chan int)
-	//chKey := make(chan uint16)
 	go startGame(ch)
 	for {
-
 		s, _ := getKeyTimeout(50 * time.Millisecond)
 
 		if s != 0 {
@@ -918,57 +950,6 @@ func main() {
 			ch <- 0
 		}
 	}
-	//go getKey(chKey) // клавитура
-
-	//switch <-chKey {
-	//case 65517:
-	//	ch <- "turn"
-	//	fmt.Println("повернуть")
-	//case 65515:
-	//	fmt.Println("влево")
-	//case 65514:
-	//	fmt.Println("вправо")
-	//case 65516:
-	//	fmt.Println("вниз")
-	//default:
-	//	ch <- "1"
-	//}
-
-	//showField(*field)
-
-	//time.Sleep(60 * time.Second)
-
-	//for i := 0; i < 10; i++ {
-	//SpawnAdvancedFigure(Z, 0, field)
-	//FallFigure(field)
-	//SpawnAdvancedFigure(Z, 2, field)
-	//FallFigure(field)
-	//SpawnAdvancedFigure(Z, 4, field)
-	//FallFigure(field)
-	//SpawnAdvancedFigure(Z, 6, field)
-	//FallFigure(field)
-	//SpawnAdvancedFigure(Z, 7, field)
-	//FallFigure(field)
-	//SpawnAdvancedFigure(L, 0, field)
-	//FallFigure(field)
-	//SpawnAdvancedFigure(J, 7, field)
-	//FallFigure(field)
-	//SpawnAdvancedFigure(I, 3, field)
-	//FallFigure(field)
-	//SpawnAdvancedFigure(O, 0, field)
-	//FallFigure(field)
-	//SpawnAdvancedFigure(O, 2, field)
-	//FallFigure(field)
-	//SpawnAdvancedFigure(O, 4, field)
-	//FallFigure(field)
-	//SpawnAdvancedFigure(L, 6, field)
-	//FallFigure(field)
-	//}
-
-	//for i := 0; i < 40; i++ {
-	//	SpawnFigure(field)
-	//	FallFigure(field)
-	//}
 }
 
 func getKeyTimeout(tm time.Duration) (ch rune, err error) {
