@@ -333,6 +333,8 @@ func checkFullLine() {
 		if temp == 10 {
 			clearLine(r)
 			moveAllUpperCellsDown(r)
+			temp = 0
+			r++
 		}
 	}
 }
@@ -734,6 +736,17 @@ func FallFigureOnce() {
 
 func FallFigure() {
 	for i := 0; i < 19; i++ {
+		switch a {
+		case "next": // only after FastFall
+			time.Sleep(50 * time.Millisecond)
+			a = "run"
+			return
+		case "pause": // after move and rotate
+			for a != "run" {
+				time.Sleep(10 * time.Millisecond)
+			}
+		}
+
 		cells := findFigureCells()
 		showFieldOnce()
 		// проверка достижения нижней линии
@@ -775,15 +788,13 @@ func FallFigure() {
 }
 
 func gameProcess() {
-	// лок действия, когда нет падающей фигуры
+	// нужен лок действия, когда нет падающей фигуры
 	var score int
 	exit := false
 	for exit == false {
-		if a == 0 {
-			exit = SpawnFigure()
-			FallFigure()
-			score++
-		}
+		exit = SpawnFigure()
+		FallFigure()
+		score++
 	}
 	fmt.Println("Game over")
 	fmt.Printf("Your score: %d\n", score)
@@ -791,68 +802,54 @@ func gameProcess() {
 	fmt.Println("simulation is finished")
 }
 
-func doActions(ch chan int, chA chan int) {
-	// 1 - stop and wait
-	// 2 - restart
-	// 0 - usually running
+func doActions(ch chan int, chA chan string) {
 	for {
 		key := <-ch
 		if key != 0 {
 			switch key {
 			case 65517:
-				chA <- 1
+				a = "pause"
 				Rotation()
-				chA <- 2
 				showFieldOnce()
+				a = "run"
 			case 65515:
-				chA <- 1
+				a = "pause"
 				MoveFigure("left")
-				chA <- 2
 				showFieldOnce()
+				a = "run"
 			case 65514:
-				chA <- 1
+				a = "pause"
 				MoveFigure("right")
-				chA <- 2
 				showFieldOnce()
+				a = "run"
 			case 65516:
-				chA <- 1
+				a = "next"
 				fastFall()
-				chA <- 2
 				fixFigure()
 			case 27:
 				ForceExit()
 			}
-			chA <- 0
+
 		}
 	}
 }
 
-var a int
+var a string
 
 func main() {
 	CreateField(&Field)
 	CreateFigure()
 	ch := make(chan int)
-	chA := make(chan int)
+	chA := make(chan string)
 	go gameProcess()
 	go getKey(ch)
 	go doActions(ch, chA)
 	go func() {
-		time.Sleep(20 * time.Second)
+		time.Sleep(300 * time.Second)
 		os.Exit(1)
 	}()
-	// 1 - stop and wait
-	// 2 - restart
-	// 0 - usually running
 	for range chA {
-		switch <-chA {
-		case 0:
-			a = 0
-		case 1:
-			a = 1
-		case 2:
-			a = 2
-		}
+		a = <-chA
 	}
 
 }
@@ -864,7 +861,7 @@ func ForceExit() {
 func getKey(ch chan int) {
 	for {
 		s, _ := getKeyTimeout(50 * time.Millisecond)
-
+		time.Sleep(20 * time.Millisecond)
 		if s != 0 {
 			ch <- int(s)
 		} else {
